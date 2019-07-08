@@ -14,4 +14,4 @@ Department：臺大資工三
 
 ## week1
 
-[markdown html](https://kimnai862.github.io/NTU-CS-X/week_1/course_1/test.html)
+[R markdown html](https://kimnai862.github.io/NTU-CS-X/week_1/course_1/test.html)
