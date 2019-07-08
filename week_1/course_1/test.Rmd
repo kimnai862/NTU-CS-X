@@ -1,0 +1,6 @@
+```{r}
+write.csv(CO2, "CO2.csv")
+tmp=read.csv("CO2.csv")
+print(tmp)
+```
+
