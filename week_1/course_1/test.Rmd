@@ -1,4 +1,5 @@
-```{r}
+The data about CO2 
+```{r, echo=FALSE}
 write.csv(CO2, "CO2.csv")
 tmp=read.csv("CO2.csv")
 print(tmp)
