@@ -24,6 +24,8 @@ Department：臺大資工三
 
 Learn the usage of package"dplyr" and try it on some data
 
+[nba.html](https://kimnai862.github.io/NTU-CS-X/week_1/home_1/nba.html)
+
 ### course 2:
 
 ##### In class:
