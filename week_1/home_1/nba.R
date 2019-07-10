@@ -1,0 +1,10 @@
+library(tidyverse)
+data_csv=read.csv("nbaplayers1718.csv")
+data_origin<-as_tibble(data_csv) 
+data_need<-data_origin%>%select(Tm, Age)%>%group_by(Tm)%>%summarize(Mean = mean(Age))
+write.csv(data_need%>%arrange(Mean), "Mean_age.csv")
+
+data_need<-data_origin%>%select(c("Tm", "X3P", "X3PA", "X2P", "X2PA"))
+data_need2<-data_need%>%group_by(Tm)%>%summarize(X3P=sum(X3P), X3PA=sum(X3PA), X2P=sum(X2P), X2PA=sum(X2PA))
+res<-data_need2%>%mutate(X3P_average = (X3P/X3PA), X2P_average=(X2P/X2PA))
+write.csv(res, "Mean_throw.csv")

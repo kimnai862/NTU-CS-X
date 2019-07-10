@@ -14,4 +14,20 @@ Department：臺大資工三
 
 ## week1
 
+### course 1:
+
+##### In class:
+
 [R markdown html](https://kimnai862.github.io/NTU-CS-X/week_1/course_1/test.html)
+
+##### At home:
+
+Learn the usage of package"dplyr" and try it on some data
+
+### course 2:
+
+##### In class:
+
+##### At home:
+
+## week2
