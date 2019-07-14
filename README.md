@@ -32,4 +32,6 @@ Learn the usage of package"dplyr" and try it on some data
 
 ##### At home:
 
+[HW1 html](https://kimnai862.github.io/NTU-CS-X/week_1/course_2/nba.html)
+
 ## week2
