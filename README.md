@@ -35,3 +35,11 @@ Learn the usage of package"dplyr" and try it on some data
 [HW1 html](https://kimnai862.github.io/NTU-CS-X/week_1/course_2/nba.html)
 
 ## week2
+
+### course 1:
+
+##### In class:
+
+##### At home:
+
+[HW2 html](https://kimnai862.github.io/NTU-CS-X/week_2/course_1/nba.html)
