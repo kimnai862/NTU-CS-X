@@ -1,10 +1,10 @@
 library(tidyverse)
 library(downloader)
-url1<-"https://storage.googleapis.com/kaggle-datasets/198073/440142/nbastats2018-2019.csv?GoogleAccessId=web-data@kaggle-161607.iam.gserviceaccount.com&Expires=1563293619&Signature=Urn8%2Fa20T05YrJU8AWurMXe1H9wNKp0kVAwvw6uWVnlRFFQy%2FTNmIOvR7z0GCSSYemTjJZ98SAizChjCefZOU6KNI2gof0Twu%2FBPagLdCtFe%2BT7ipkr19NG6Q0mZPt07T9i31qvZcL1kFu0%2B32G0PLtV949ySGC3aNL5cmq2J1T0CoocooR7EGHG60BCINEC69jfsXgqMmfj2plqTeFt1UdQZ1%2FB0k64dplAAfANAyUkWUyxCsP4Xou4zp108g6ChhDxr0jXXIVhODz6w4gVdRPdushWAQXuI7rPxgS1uB%2BTMX%2FcIt5rpMwO1L7lbCF90YNa0wB40C3wvq6g2Gv%2FvQ%3D%3D"
-file1<-"data1.csv"
-if(!file.exists(file1)) download(url1, file1)
+library(ggplot2)
+library(cluster)
+library(factoextra)
 data_1_origin<-read.csv("data1.csv")
-data_1_need <- data_1_origin %>% mutate(Throw = FGA*G)%>%select(Throw, Name, Team) %>% filter(Team != "")
+data_1_need <- data_1_origin %>% mutate(Throw = FGA*G)%>%select(Salary, Height, FG., Throw, Name, Team) %>% filter(Team != "")
 data_1_need<-data_1_need%>%group_by(Team)%>%mutate(sum_throw = sum(Throw))
 data_1_need<-data_1_need%>%mutate(Percentage = Throw / sum_throw)%>%select(-Throw, -sum_throw)
 t1<-as.vector(data_1_need$Name)
@@ -78,12 +78,8 @@ for (i in c(1: n)) {
   }
 }
 t1<-factor(t1)
-data_1_need<-data.frame(data_1_need, name = t1)%>%select(3:4)
-#write.csv(data_1_need, "test.csv")
-url2<-"https://www.kaggle.com/schmadam97/nba-playbyplay-data-20182019/downloads/NBA-PBP-2018-2019.csv/3"
-file2<-"data2.csv"
-if(!file.exists(file2)) download.file(url2, file2, mode="wb")
-unzip(file2, "data2.csv")
+data_1_need<-data.frame(data_1_need, name = t1)%>%select(Salary, Height, FG., Percentage, name)
+write.csv(data_1_need, "res1.csv")
 data_2_origin<-read.csv("data2.csv")
 data_2_t1<-data_2_origin%>%filter(GameType == "regular")%>%mutate(Pt = abs(HomeScore - AwayScore)) %>% select(Quarter, SecLeft, Shooter, Pt) %>% filter(Quarter==4, SecLeft <=60, Shooter != "")
 data_2_need<-data_2_t1%>%filter( (SecLeft > 30 & Pt <= 10) | (SecLeft > 20 & Pt <= 8) | (Pt <= 7) )%>%select(Shooter)%>%group_by(Shooter)%>%mutate(Times = n())%>%distinct()
@@ -100,5 +96,24 @@ data_2_need<-data_2_need%>%rename(name = Shooter)%>%select(name, sp_percentage)
 data_final = merge(data_1_need, data_2_need, by = "name")
 data_final<-data_final%>%filter(Percentage > 0.065)
 write.csv(data_final, "res.csv")
-data_final<-read.csv("res.csv")
+ggplot(data = data_final) + geom_boxplot(mapping = aes(x = Salary, y = pp, group = cut_width(Salary, 5000000, boundary = 0)))
+ggplot(data = data_final) + geom_boxplot(mapping = aes(x = Salary, y = pp, group = cut_number(Salary, 8))) 
+ggplot(data = data_final) + geom_boxplot(mapping = aes(x = Height, y = pp, group = cut_width(Height, 2.8, boundary = 72)))
+ggplot(data = data_final) + geom_boxplot(mapping = aes(x = FG., y = pp, group = cut_width(FG., 0.05, boundary = 0.386)))
+ggplot(data = data_final) + geom_boxplot(mapping = aes(x = Salary, y = FG., group = cut_width(Salary, 5000000, boundary = 0)))
+ggplot(data = data_final) + geom_point(mapping = aes(x = Percentage, y = sp_percentage)) + geom_smooth(mapping = aes(x = Percentage, y = sp_percentage))
+cc<-kmeans(data_final%>%select(Percentage, sp_percentage), centers=3)
+fviz_cluster(cc, data = data_final%>%select(Percentage, sp_percentage),            # 資料
+             geom = c("point", "text"),     # 點 (point)
+             frame.type = "norm")
+cc<-kmeans(data_final%>%select(Salary, pp), centers=4)
+fviz_cluster(cc, data = data_final%>%select(Salary, pp),            # 資料
+             geom = c("point", "text"),     # 點 (point)
+             frame.type = "norm")
+ggplot(data = data_final) + geom_point(mapping = aes(x = Salary, y = pp))
+
+data_final<-read.csv("res.csv") %>% mutate(pp = sp_percentage / Percentage)
+
+ggplot(data = data_final) + geom_bar(mapping = aes(x = floor(Salary/5000000), fill = (pp > 1)), position = "fill")
+
 

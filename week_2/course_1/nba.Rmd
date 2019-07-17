@@ -1,0 +1,60 @@
+使用之前的資料探討球員關鍵時刻的出手率與其其他項目之關係
+
+關鍵時刻出手率之定義：在最後一節剩餘時間<=60且滿足以下其中一條件
+
+以下球員指考慮平常出手律高於7%的球員
+
+1.剩餘時間 > 30 and 分差 <= 10
+
+2.剩餘時間 > 20 and 分差 <= 8
+
+3.分差 <= 7
+出手率=自己出手數/總隊上總出手數
+
+根據HW1跑出之資料延續探討關係
+
+Percentage : 平常出手率
+
+sp_percentage：關鍵時刻出手率
+
+pp = sp_percentage / Percentage : 關鍵時刻出手增加率
+```{r}
+library(tidyverse)
+library(ggplot2)
+data_final <- read.csv("res.csv")
+data_final <- data_final %>% mutate(pp = sp_percentage / Percentage)
+head(data_final)
+```
+
+關件時刻出手增加律和球員之薪水有正相關
+```{r}
+ggplot(data = data_final) + geom_boxplot(mapping = aes(x = Salary, y = pp, group = cut_width(Salary, 5000000, boundary = 0)))
+ggplot(data = data_final) + geom_bar(mapping = aes(x = floor(Salary/5000000), fill = (pp > 1)), position = "fill")
+```
+
+若將球員大致依身高分場上位置，可得第一二矮的關件時刻出手增加律較高
+
+推測關鍵時刻比較常將球給後衛
+
+```{r}
+ggplot(data = data_final) + geom_boxplot(mapping = aes(x = Height, y = pp, group = cut_number(Height, 5, boundary = 72)))
+ggplot(data = data_final) + geom_bar(mapping = aes(x = floor((Height-72)/2.8), fill = (pp > 1)), position = "fill")
+```
+
+關件時刻出手增加律和總體命中律沒有成正向關
+
+推測可能會將很多球交給球星處理，卻又被嚴防
+
+```{r}
+ggplot(data = data_final) + geom_boxplot(mapping = aes(x = FG., y = pp, group = cut_number(FG., 7, boundary = 0.386)))
+```
+
+關件時刻出手律和平常出手律大致上有正相關
+```{r}
+ggplot(data = data_final) + geom_boxplot(mapping = aes(x = Percentage, y = sp_percentage, group = cut_number(Percentage, 7, boundary = 0)))
+ggplot(data = data_final) + geom_point(mapping = aes(x = Percentage, y = sp_percentage)) + geom_smooth(mapping = aes(x = Percentage, y = sp_percentage)) + coord_cartesian(xlim = c(0, 0.5), ylim = c(0, 0.5))
+```
+
+結論：大體上不會有所謂“奇兵”，對於平常出手律、年薪，就決定關鍵時刻的球權，雖然出手者命中率不見得最高，但還是會被信任。
+
+
