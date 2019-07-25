@@ -63,7 +63,7 @@ for (i in c(1 : n)) {
 rain <- merge(rain, st)
 ```
 對於不同類的颱風，計算出每個地區的均降雨量和淹水警戒率
-```{r}
+```{r, warning = FALSE}
 for (kk in c(1 : 9)) {
   data <- read.csv("typhoon.csv") %>% select(4, 5, 6, 7, 9) 
   data <- data %>% mutate(start_time = 警報期間, end_time = 警報期間, 英文名稱 = 颱風名稱)
