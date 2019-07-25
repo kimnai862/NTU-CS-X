@@ -1,0 +1,156 @@
+library(GISTools)
+library(rgdal)
+library(sp)
+library(tidyverse)
+
+data <- read.csv("rain_station.csv") %>% select(1, 3, 4, 5, 7)
+i <- sapply(data, is.factor)
+data[i] <- lapply(data[i], as.character)
+data <- data %>% mutate(pos = paste0(city, town)) %>% select(1, 2, 3, 6)
+st <- data
+##
+
+data <- read.csv("rain.txt", sep = "")
+tmp <- as.character(data[,2])
+n = length(tmp)
+for (i in c(1 : n)) {
+  s <- tmp[i]
+  tmp[i] <- paste0(substring(s, 1, 4), "-", substring(s, 5, 6), "-", substring(s, 7, 8), " ", substring(s, 9, 10), ":00")
+}
+tmp <- as.POSIXlt(tmp)
+data <- data.frame(data[,c(1, 3)], time = tmp)
+rain <- data 
+##
+data <- read.csv("line.csv") %>% select(-1, -2, -3, -5)
+line <- data
+i <- sapply(line, is.factor)
+line[i] <- lapply(line[i], as.character)
+##
+n = nrow(st)
+m = nrow(line)
+buf = numeric()
+for (j in c(1 : m)) {
+  if (line$CT[j] %>% substring(1,  1) == "台") {
+    line$CT[j] = paste0("臺", substring(line$CT[j], 2))
+  }
+}
+for (i in c(1 : n)) {
+  ok = FALSE
+  for (j in c(1 : m)) {
+    if (substring(st$pos[i], 1, 5) == substring(line$CT[j], 1, 5)) {
+      ok = TRUE
+      buf = c(buf, j)
+      break
+    }
+  }
+  if (ok == FALSE) buf = c(buf, -1)
+}
+st <- data.frame(st, index = buf) %>% rename(stno = station_id) 
+st <- st %>% mutate(ori = index)
+n = nrow(st)
+for (i in c(1 : n)) {
+  st$ori[i] = i
+}
+rain <- merge(rain, st)
+##
+for (kk in c(1 : 1)) {
+  data <- read.csv("typhoon.csv") %>% select(4, 5, 6, 7, 9) 
+  data <- data %>% mutate(start_time = 警報期間, end_time = 警報期間, 英文名稱 = 颱風名稱)
+  data <- data.frame(lapply(data, as.character), stringsAsFactors=FALSE)
+  res <- st %>% mutate(sum = ori, pc1 = ori, pc2 = ori)
+  n = nrow(res)
+  for (i in c(1 : n)) {
+    res$sum[i] = 0
+    res$pc1[i] = 0
+    res$pc2[i] = 0
+  }
+  n = nrow(data)
+  for (i in c(1 : n)) {
+    if (i %% 2 == 1) {
+      data[i, 8] = data[i+1, 1]
+      data[i, 7] = data[i+1, 3]
+    }
+  }
+  data <- data %>% select(-3) %>% filter(近臺強度 != "")
+  tmp1 <- as.POSIXlt(data[ ,5])
+  tmp2 <- as.POSIXct(data[ ,6])
+  
+  data <- data.frame(data[,c(1,2,3,4,7)], tart_time = tmp1, end_time = tmp2)
+  ty <- data %>% filter(侵臺路徑分類 == as.character(kk))
+  n = nrow(ty)
+  for (i in c(1 : n)) {
+    data <- rain %>% filter(time >= ty$tart_time[i] & time <= ty$end_time[i])
+    m = nrow(data)
+    for (l in c(1 : m)) {
+      res$sum[data$ori[l]] = res$sum[data$ori[l]] + data$PP01[l]
+    }
+    
+    p1 = 1
+    p2 = 1
+    m = nrow(data)
+    while (p1 <= m) {
+      while (p2 + 1 <= m & data[p1, 1] == data[p2+1, 1]) {
+        p2 = p2 + 1
+      }
+      ok1 = FALSE
+      ok2 = FALSE
+      val = c(1, 3, 6, 12, 24)
+      for (j in c(1 : 5)) {
+        if (p2 - p1 + 1 < val[j]) break
+        mxn = 0
+        cur = 0
+        for (k in c(p1 : p1 + val[j] - 1)) {
+          mxn = mxn + data[k, 2]
+          cur = cur + data[k, 2]
+        }
+        cp = p1 + val[j]
+        while (cp <= p2) {
+          cur = cur - data[cp - val[j], 2] + data[cp, 2]
+          if (cur > mxn)
+            mxn = cur
+          cp = cp + 1
+        }
+        re = data$index[p1]
+        print(line[re, 1+j])
+        if (mxn >= line[re, 1+j])
+          ok2 = TRUE
+        if (mxn >= line[re, 6+j])
+          ok1 = TRUE
+      }
+      p1 = p2 + 1
+      p2 = p1
+      if (ok2) res$pc2[data$ori[p1]] = res$pc2[data$ori[p1]] + 1
+      if (ok1) res$pc1[data$ori[p1]] = res$pc1[data$ori[p1]] + 1
+    }
+  }
+  res <- res %>% mutate(sum = sum / n, pc1 = pc1 / n, pc2 = pc2 / n) %>% select(pos, sum, pc1, pc2)
+  res <- res %>% group_by(pos) %>% summarise(sum = sum(sum) / n(), pc1 = 100*sum(pc1) / n(), pc2 = 100*sum(pc2) / n())
+  res <- res %>% rename(NAME = pos)
+  ##
+  TW <- readOGR(dsn = ".", layer = "Popn_TWN2", encoding="unicode+8")
+  TW@data$TOWN<-iconv(as.character(TW@data$TOWN), #NAME_2原本是factor
+                      from="big5", to = "UTF-8")
+  TW@data$COUNTY<-iconv(as.character(TW@data$COUNTY), #NAME_2原本是factor
+                        from="big5", to = "UTF-8")
+  df <- TW@data
+  df$NAME = paste0(df$COUNTY, df$TOWN)
+  df <- merge(df, res)
+  
+  #par(mar = c(0,0,0,0)) # 調整下左上右邊界
+  shades = auto.shading(df$sum, cutter = rangeCuts, n=5, cols = brewer.pal(5, "Reds")) # 把顏色自動分為6層
+  print(shades)
+  choropleth(TW, df$sum, shading=shades, main = paste0("rain in Taiwan-", kk)) # 面量圖
+  choro.legend(343556.7,2590112, shades,cex=0.6, 
+               fmt="%4.1f",title='mm/hr')
+  north.arrow(357257.5, 2644915, "N", len=8000, col="light gray")
+  map.scale(35288.13,2482789,100000,"100 km", 1, subdiv=1, tcol='black',scol='gray', sfcol='black')
+  
+  
+  #par(mar = c(0,0,0,0)) # 調整下左上右邊界
+  shades = auto.shading(df$pc2, cutter = rangeCuts, n=5, cols = brewer.pal(5, "Reds")) # 把顏色自動分為6層
+  choropleth(TW, df$pc2, shading=shades, main = paste0("warning_2 in Taiwan-", kk)) # 面量圖
+  choro.legend(343556.7,2590112, shades,cex=0.6, 
+               fmt="%g",title='warning_2_percentage')
+  north.arrow(357257.5, 2644915, "N", len=8000, col="light gray")
+  map.scale(35288.13,2482789,100000,"100 km", 1, subdiv=1, tcol='black',scol='gray', sfcol='black')
+}
