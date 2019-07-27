@@ -1,9 +1,15 @@
+# 金閣寺
+目的：看此作品中作者一直提到的"美"和"拒絕"與其他字之相關性
+```{r}
 library(jiebaR)
 library(tidyverse)
 library(rvest)
 library(wordcloud2)
 library(text2vec)
 library(stringr)
+```
+增字
+```{r}
 data <- readChar("gold.txt", 10000000)
 cutter <- worker(stop_word = "stop.txt")
 new_user_word(cutter, "美的")
@@ -11,49 +17,43 @@ new_user_word(cutter, "金閣")
 new_user_word(cutter, "有為子")
 new_user_word(cutter, "柏木")
 new_user_word(cutter, "拒絕")
-
-
-
+```
+斷詞，並把字數=1的捨去，以此達到去除不重要的字
+```{r}
 tmp <- segment(data, cutter)
-tokens <- list(tmp)
-class(tokens)
-
-it <- itoken(tokens, progressbar = FALSE)
-vocab <- create_vocabulary(it)
-vocab <- vocab[which(nchar(vocab$term)>1),]
-vocab = prune_vocabulary(vocab, term_count_min = 10L)
-write.csv(vocab, "tmp.txt")
-
-vectorizer = vocab_vectorizer(vocab)
-tcm = create_tcm(it, vectorizer,skip_grams_window = 10L)
-
-glove = GlobalVectors$new(word_vectors_size = 40, vocabulary = vocab, x_max = 10)
-wv_main = glove$fit_transform(tcm, n_iter = 10, convergence_tol = 0.01)
-dim(wv_main)
-
-wv_context = glove$components
-dim(wv_context)
-word_vectors = wv_main + t(wv_context)
-
-relation = word_vectors["拒絕", , drop = FALSE] +
-  word_vectors["美的", , drop = FALSE]
-
-cos_sim = sim2(x = word_vectors, y = relation, method = "cosine", norm = "l2")
-head(sort(cos_sim[,1], decreasing = TRUE), 14)
-
 tmp2 = character()
 n = length(tmp)
 for (i in c(1 : n)) {
   if (nchar(tmp[i]) > 1) tmp2 = c(tmp2, tmp[i])
 }
 tmp <- tmp2
-z <- sort(table(tmp),decreasing = T)[1:100]#排序取前100
-z <- data.frame(z) #轉成dataframe
-str(z)
-print(z)
-#wordcloud2(z,
-#size = 2,
-#backgroundColor = "black",
-#color = "random-light",
-#shape = "triangle")
+```
+製作相關向量，發現有出現"人世間"、"金閣"、"存在"，這些意象
+```{r}
+tokens <- list(tmp)
+it <- itoken(tokens, progressbar = FALSE)
+vocab <- create_vocabulary(it)
+vocab <- vocab[which(nchar(vocab$term)>1),]
+vocab = prune_vocabulary(vocab, term_count_min = 10L)
+vectorizer = vocab_vectorizer(vocab)
+tcm = create_tcm(it, vectorizer,skip_grams_window = 10L)
+glove = GlobalVectors$new(word_vectors_size = 40, vocabulary = vocab, x_max = 10)
+wv_main = glove$fit_transform(tcm, n_iter = 10, convergence_tol = 0.01)
+dim(wv_main)
+wv_context = glove$components
+dim(wv_context)
+word_vectors = wv_main + t(wv_context)
+
+relation = word_vectors["拒絕", , drop = FALSE] + word_vectors["美的", , drop = FALSE]
+cos_sim = sim2(x = word_vectors, y = relation, method = "cosine", norm = "l2")
+head(sort(cos_sim[,1], decreasing = TRUE), 16)
+```
+製作文字雲
+```{r}
+z <- sort(table(tmp),decreasing = T)[1:100]
+z <- data.frame(z)
+wordcloud2(z, size = 2, backgroundColor = "black", color = "random-light")
+```
+
+
 
