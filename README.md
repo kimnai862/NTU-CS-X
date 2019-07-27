@@ -43,3 +43,5 @@ Learn the usage of package"dplyr" and try it on some data
 ##### At home:
 
 [HW2 html](https://kimnai862.github.io/NTU-CS-X/week_2/course_1/nba.html)
+
+[HW3 html](https://kimnai862.github.io/NTU-CS-X/week_2/home_1/hw3.html)
